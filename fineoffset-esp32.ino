@@ -57,6 +57,7 @@ public:
     Serial.println(vendor_id);
     Serial.println(product_id);
     Usb.Task();
+    delay(1000);
     if (Usb.getUsbTaskState() == USB_STATE_RUNNING)
     {
       Usb.ForEachUsbDevice(&PrintAllDescriptors);
