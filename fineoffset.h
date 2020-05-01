@@ -1,24 +1,25 @@
+#ifndef usbhub
+#define usbhub
 #include <usbhub.h>
-#include "pgmstrings.h"
-// Satisfy the IDE, which needs to see the include statment in the ino too.
-#ifdef dobogusinclude
-#include <spi4teensy3.h>
 #endif
-#include <SPI.h>
-//#include "extractor.h"
-
-USB     Usb;
 
 class DeviceReader
 {
 public:
+  DeviceReader();
   int ciclos = 0;
   int addr = 1;
   int vendor_id = 1941;
   int product_id = 8021;
   int usb_endpoint = 81; // revisar para que sirve, evitar confusión
   int usb_read_size = 20;
-
+  //Se supone que esta función buscaría el puerto y direccion, pero al ser un solo adaptador se puede obviar (creo), dejando las direcciones predeterminadas
+  void find_device(USB Usb);
+  //Abrimos el puerto y lo dejamos disponible
+  void openPort(USB Usb);
+  //Llamada a uno de los metodos mas basicos de acceso a la estacion
   void read_usb_block(USB Usb, int usb_address);
-
-}
+  //Funcion que debería llamar a read_usb_block
+  void read_block(int ptr, bool retry=True);
+  
+};

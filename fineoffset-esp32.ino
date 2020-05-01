@@ -1,10 +1,13 @@
+#ifndef usbhub
 #include <usbhub.h>
+#endif
 #include "pgmstrings.h"
 // Satisfy the IDE, which needs to see the include statment in the ino too.
 #ifdef dobogusinclude
 #include <spi4teensy3.h>
 #endif
 #include <SPI.h>
+USB Usb;
 #include "fineoffset.h"
 
 //Recibe un registro y lo envía a través de LORA
@@ -44,8 +47,7 @@ void setup()
 }
 
 void loop()
-{
-  
+{  
   DeviceReader dr;
   Serial.println("Objeto DeviceReader");
   delay(5000);
