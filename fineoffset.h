@@ -13,7 +13,6 @@ public:
   int product_id = 8021;
   int usb_endpoint = 81; // revisar para que sirve, evitar confusión
   uint16_t bufferSize = 20;
-  //uint16_t readBuffer[20];
   //Se supone que esta función buscaría el puerto y direccion, pero al ser un solo adaptador se puede obviar (creo), dejando las direcciones predeterminadas
   void find_device(USB Usb);
   //Abrimos el puerto y lo dejamos disponible
