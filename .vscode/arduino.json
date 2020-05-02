@@ -1,0 +1,6 @@
+{
+    "board": "espressif:esp32:esp32wrover",
+    "configuration": "PartitionScheme=default,FlashMode=qio,FlashFreq=80,UploadSpeed=921600,DebugLevel=none",
+    "sketch": "fineoffset-esp32.ino",
+    "port": "/dev/ttyUSB0"
+}

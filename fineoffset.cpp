@@ -17,7 +17,7 @@ void DeviceReader::openPort(USB Usb)
 void DeviceReader::read_usb_block(USB Usb, int usb_address)
 {
     Serial.println("Iniciando lectura de usb");
-    Serial.println("usb_address " + usb_address);
+    Serial.println(" usb_address " + usb_address);
     int ptr = 0;
     uint8_t addr;
     uint8_t endPoint;
@@ -28,7 +28,8 @@ void DeviceReader::read_usb_block(USB Usb, int usb_address)
     uint16_t wInd;
     uint16_t total;
     addr = 1;
-    endPoint = 81;
+    //endPoint = 81;
+    endPoint = 0;
     bmReqType = 0x33; //class+interface en getData.py
     bRequest = 0x09;
     wValLo = 0x00;
@@ -50,15 +51,15 @@ void DeviceReader::read_usb_block(USB Usb, int usb_address)
 
     Serial.println("ptr: " + ptr);
     Serial.println("requestBuffer:");
-    Serial.println(rqstBuffer[0]);
-    Serial.println(rqstBuffer[1]);
-    Serial.println(rqstBuffer[2]);
-    Serial.println(rqstBuffer[3]);
-    Serial.println(rqstBuffer[4]);
-    Serial.println(rqstBuffer[5]);
-    Serial.println(rqstBuffer[6]);
-    Serial.println(rqstBuffer[7]);
-    Serial.println("Termina requestBuffer");
+    // Serial.println(rqstBuffer[0]);
+    // Serial.println(rqstBuffer[1]);
+    // Serial.println(rqstBuffer[2]);
+    // Serial.println(rqstBuffer[3]);
+    // Serial.println(rqstBuffer[4]);
+    // Serial.println(rqstBuffer[5]);
+    // Serial.println(rqstBuffer[6]);
+    // Serial.println(rqstBuffer[7]);
+    //Serial.println("Termina requestBuffer");
     /*Usb.ctrlReq(usb_address,  //address
                 endPoint, //endPoint
                 321, //requestType
@@ -71,8 +72,14 @@ void DeviceReader::read_usb_block(USB Usb, int usb_address)
                 rqstBuffer, //data
                 NULL); //timeout o parser?*/
     //uint16_t* parser = 0;
-    //Serial.println(Usb.inTransfer(addr, endPoint, usb_read_size, 32, &readBuffer));
-    Serial.println(Usb.ctrlReq(addr, endPoint, bmReqType, bRequest, wValLo, wValHi, wInd, total, sizeof(rqstBuffer) / sizeof(byte), rqstBuffer, NULL));    
+    Serial.println("Control Request");
+    Usb.ctrlReq(addr, endPoint, bmReqType, bRequest, wValLo, wValHi, wInd, total, sizeof(rqstBuffer) / sizeof(byte), rqstBuffer, NULL); 
+    Serial.println("In transfer");   
+    Serial.println(Usb.inTransfer(addr, endPoint, &bufferSize, readBuffer),HEX);
+        for (int i = 0; i < 20; i++) {
+        Serial.println(readBuffer[i]);
+      }
+    return readBuffer;
 }
 
 //Find the vendor and product ID on the USB.
@@ -91,11 +98,13 @@ void DeviceReader::find_device(USB Usb)
         read_usb_block(Usb, addr);
     }
 }
-void read_block(int ptr, bool retry=True){
+void read_block(int ptr, bool retry=true){
     // Read block repeatedly until it's stable. This avoids getting corrupt
     // data when the block is read as the station is updating it.
-    //old_block = None
-      //  while True:
+    old_block = None
+    while (true){
+      
+    }
             //self._wait_for_station()
         //    new_block = self._read_usb_block(ptr)
           //  if new_block:
