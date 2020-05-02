@@ -14,7 +14,7 @@ void DeviceReader::openPort(USB Usb)
     find_device(Usb);
 }
 
-void DeviceReader::read_usb_block(USB Usb, int usb_address)
+uint8_t* DeviceReader::read_usb_block(USB Usb, int usb_address)
 {
     Serial.println("Iniciando lectura de usb");
     Serial.println(" usb_address " + usb_address);
@@ -76,7 +76,7 @@ void DeviceReader::read_usb_block(USB Usb, int usb_address)
     Usb.ctrlReq(addr, endPoint, bmReqType, bRequest, wValLo, wValHi, wInd, total, sizeof(rqstBuffer) / sizeof(byte), rqstBuffer, NULL); 
     Serial.println("In transfer");   
     Serial.println(Usb.inTransfer(addr, endPoint, &bufferSize, readBuffer),HEX);
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 32; i++) {
         Serial.println(readBuffer[i]);
       }
     return readBuffer;
@@ -92,19 +92,18 @@ void DeviceReader::find_device(USB Usb)
     //delay(1000);
     if (Usb.getUsbTaskState() == USB_STATE_RUNNING)
     {
-        //Usb.ForEachUsbDevice(&PrintAllDescriptors);
-        //Usb.ForEachUsbDevice(&PrintAllAddresses);
         Serial.println("USB_STATE_RUNNING");
-        read_usb_block(Usb, addr);
+        read_block(Usb, addr, true);
     }
 }
-void read_block(int ptr, bool retry=true){
+void DeviceReader::read_block(USB Usb, int ptr, bool retry){  
     // Read block repeatedly until it's stable. This avoids getting corrupt
     // data when the block is read as the station is updating it.
-    old_block = None
-    while (true){
+    //old_block = None
+    read_usb_block(Usb, ptr);
+    //while (true){
       
-    }
+    //}
             //self._wait_for_station()
         //    new_block = self._read_usb_block(ptr)
           //  if new_block:
