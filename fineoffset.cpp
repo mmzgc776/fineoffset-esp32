@@ -2,6 +2,9 @@
 #include <usbhub.h>
 #endif
 #include "fineoffset.h"
+#include <stdio.h>
+#include <string.h>
+
 //Se pretende adaptar los controladores de FineOffset WH1080
 //Aquí están las funciones básicas para la implementación de un extractor por USB
 //Moisés González Castellanos 04-04-20
@@ -14,28 +17,22 @@ void DeviceReader::openPort(USB Usb)
   find_device(Usb);
 }
 
-uint8_t *DeviceReader::read_usb_block(USB Usb, int usb_address)
+uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
 {
-  Serial.println("Iniciando lectura de usb");
-  Serial.println(" usb_address " + usb_address);
-  int ptr = 0;
-  uint8_t addr;
-  uint8_t endPoint;
-  uint8_t bmReqType;
-  uint8_t bRequest;
-  uint8_t wValLo;
-  uint8_t wValHi;
-  uint16_t wInd;
+  Serial.println("Iniciando lectura de usb: read_usb_block");
+  Serial.print("address: ");
+  Serial.println(address);
+  int ptr = address;
+  uint8_t usb_addr = 1; //Dirección en el usb host
+  uint8_t endPoint = 81; //81 en el descriptor de usb y script 0
+  uint8_t bmReqType = 33; //usb.TYPE_CLASS + usb.RECIP_INTERFACE en getData.py
+  uint8_t bRequest = 0x09;
+  uint8_t wValLo = 0x00;;
+  uint8_t wValHi = 0x02;
+  uint16_t wInd  = 0;
   uint16_t total;
-  addr = 1;
-  //endPoint = 81;
-  endPoint = 0;
-  bmReqType = 0x33; //class+interface en getData.py
-  bRequest = 0x09;
-  wValLo = 0x00;
-  wValHi = 0x02;
-  wInd = 0;
 
+  //Buffer a envíar a la estación
   uint8_t rqstBuffer[8];
   rqstBuffer[0] = 0xA1;               // READ COMMAND
   rqstBuffer[1] = (char)(ptr / 256);  // READ ADDRESS HIGH
@@ -47,18 +44,10 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int usb_address)
   rqstBuffer[7] = 0x20;               // END MARK
   total = 8;                          //rqstBuffer.size()
 
-  uint8_t readBuffer[32];
-
-  Serial.println("ptr: " + ptr);
-  Serial.println("requestBuffer:");
-  // Serial.println(rqstBuffer[0]);
-  // Serial.println(rqstBuffer[1]);
-  // Serial.println(rqstBuffer[2]);
-  // Serial.println(rqstBuffer[3]);
-  // Serial.println(rqstBuffer[4]);
-  // Serial.println(rqstBuffer[5]);
-  // Serial.println(rqstBuffer[6]);
-  // Serial.println(rqstBuffer[7]);
+  uint16_t BufferSize = kBufferSize;
+  uint8_t readBuffer[BufferSize];
+  uint8_t *output = new uint8_t[BufferSize];
+  //Serial.println("requestBuffer:");
   //Serial.println("Termina requestBuffer");
   /*Usb.ctrlReq(usb_address,  //address
                 endPoint, //endPoint
@@ -72,11 +61,30 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int usb_address)
                 rqstBuffer, //data
                 NULL); //timeout o parser?*/
   //uint16_t* parser = 0;
+  Serial.print(bmReqType);
+  Serial.print(bRequest);
+  for (int i =0; i<8;i++){    
+    Serial.print(rqstBuffer[i]);
+    Serial.print(" ");
+  }
+
+
+
   Serial.println("Control Request");
-  Usb.ctrlReq(addr, endPoint, bmReqType, bRequest, wValLo, wValHi, wInd, total, sizeof(rqstBuffer) / sizeof(byte), rqstBuffer, NULL);
+  Usb.ctrlReq(usb_addr, endPoint, bmReqType, bRequest, wValLo, wValHi, wInd, total, sizeof(rqstBuffer) / sizeof(byte), rqstBuffer, NULL);
   Serial.println("In transfer");
-  Usb.inTransfer(addr, endPoint, &bufferSize, readBuffer);
-  return readBuffer;
+  Usb.inTransfer(usb_addr, endPoint, &BufferSize, readBuffer);
+  //Prueba de salida de una lectura unica
+  //Serial.print("ReadBuffer: ");
+  for (int i = 0; i < BufferSize; i++)
+  {
+    // Serial.print(" ");
+    // Serial.print(readBuffer[i]);
+    // Serial.print(" ");
+    output[i] = readBuffer[i];
+  }
+  //Serial.println(".");
+  return output;
 }
 
 //Find the vendor and product ID on the USB.
@@ -89,346 +97,119 @@ void DeviceReader::find_device(USB Usb)
   Serial.println("Clase DeviceReader/find_device");
   if (Usb.getUsbTaskState() == USB_STATE_RUNNING)
   {
-    Serial.println("USB_STATE_RUNNING > read_block, ptr:" + addr);
-    read_block(Usb, addr, true);
+    Serial.println("USB_STATE_RUNNING > read_block, ptr:" + 1);
+    read_fixed_block(Usb);
   }
 }
-void DeviceReader::read_block(USB Usb, int ptr, bool retry)
+// Read block repeatedly until it's stable. This avoids getting corrupt
+// data when the block is read as the station is updating it.
+uint8_t *DeviceReader::read_block(USB Usb, int ptr, bool retry)
 {
-  // Read block repeatedly until it's stable. This avoids getting corrupt
-  // data when the block is read as the station is updating it.
-  uint8_t *old_block;
+  bool flag = false;
+  uint8_t old_block[kBufferSize];
   uint8_t *new_block;
+  //Llenamos el arreglo
+  for (int i = 0; i < kBufferSize; i++)
+  {
+    old_block[i] = 0;
+  }
   while (true)
+  //for (int t = 0; t < 100; t++)
   {
     //self._wait_for_station()
-
+    //delay(1000);
     new_block = read_usb_block(Usb, ptr);
     Serial.println("Block assigment");
-    for (int i = 0; i < 32; i++)
+    if (new_block != NULL)
     {
-      Serial.println(new_block[i]);
-    }    
-    if (new_block)
-    {
-      Serial.println("Array compare");
-      //if ((new_block == old_block)||retry==false){
-      break;
-      //}
-      if (old_block)
+      //Prueba de salida de una lectura unica
+      Serial.print("New Buffer: ");
+      for (int i = 0; i < kBufferSize; i++)
       {
-        Serial.println("unstable read: blocks differ for ptr 0x%06x" + ptr);
+        //Serial.print(i);
+        Serial.print(" ");
+        Serial.print(new_block[i]);
+        Serial.print(" ");
       }
-      old_block = new_block;
+      Serial.println(".");
+
+      //Prueba de salida de una lectura anterior
+      Serial.print("Old Buffer: ");
+      for (int i = 0; i < kBufferSize; i++)
+      {
+        //Serial.print(i);
+        Serial.print(" ");
+        Serial.print(old_block[i]);
+        Serial.print(" ");
+      }
+      Serial.println(".");
+
+      Serial.println("Array compare");
+      //Resvisar si old_block es nulo
+      if (old_block != NULL)
+      {
+        Serial.println("Entra a la comparacion");
+        //Metodo con memcomp
+        if (memcmp(old_block, new_block, 32) == 0)
+        {
+          // They match and we are done:
+          //
+          //readDone = TRUE;
+          Serial.println("Lecturas iguales, array igual");
+          flag = true;
+          break;
+        }
+        else
+        {
+          Serial.println("WH1080: readBlock buffer still changing");
+          //Serial.println("Elemento diferente");
+          memcpy(old_block, new_block, 32);
+          flag = false;
+          //break;
+        }
+      }
     }
   }
+  return new_block;
 }
+uint8_t *DeviceReader::read_fixed_block(USB Usb)
+{
+  uint8_t *fixed_block = new uint8_t[kBufferSize];
+  uint8_t new_block[kBufferSize];
 
-// void PrintAllAddresses(UsbDevice *pdev)
-// {
-//     UsbDeviceAddress adr;
-//     adr.devAddress = pdev->address.devAddress;
-//     Serial.print("\r\nAddr:");
-//     Serial.print(adr.devAddress, HEX);
-//     Serial.print("(");
-//     Serial.print(adr.bmHub, HEX);
-//     Serial.print(".");
-//     Serial.print(adr.bmParent, HEX);
-//     Serial.print(".");
-//     Serial.print(adr.bmAddress, HEX);
-//     Serial.println(")");
-// }
-
-// void PrintAddress(uint8_t addr)
-// {
-//     UsbDeviceAddress adr;
-//     adr.devAddress = addr;
-//     Serial.print("\r\nADDR:\t");
-//     Serial.println(adr.devAddress, HEX);
-//     Serial.print("DEV:\t");
-//     Serial.println(adr.bmAddress, HEX);
-//     Serial.print("PRNT:\t");
-//     Serial.println(adr.bmParent, HEX);
-//     Serial.print("HUB:\t");
-//     Serial.println(adr.bmHub, HEX);
-// }
-
-// uint8_t getdevdescr(uint8_t addr, uint8_t &num_conf);
-
-// /* Print a string from Program Memory directly to save RAM */
-// void printProgStr(const char *str)
-// {
-//     char c;
-//     if (!str)
-//         return;
-//     while ((c = pgm_read_byte(str++)))
-//         Serial.print(c);
-// }
-
-// /* prints hex numbers with leading zeroes */
-// // copyright, Peter H Anderson, Baltimore, MD, Nov, '07
-// // source: http://www.phanderson.com/arduino/arduino_display.html
-// void print_hex(int v, int num_places)
-// {
-//     int mask = 0, n, num_nibbles, digit;
-
-//     for (n = 1; n <= num_places; n++)
-//     {
-//         mask = (mask << 1) | 0x0001;
-//     }
-//     v = v & mask; // truncate v to specified number of places
-
-//     num_nibbles = num_places / 4;
-//     if ((num_places % 4) != 0)
-//     {
-//         ++num_nibbles;
-//     }
-//     do
-//     {
-//         digit = ((v >> (num_nibbles - 1) * 4)) & 0x0f;
-//         Serial.print(digit, HEX);
-//     } while (--num_nibbles);
-// }
-
-// /* function to print configuration descriptor */
-// void printconfdescr(uint8_t *descr_ptr)
-// {
-//     USB_CONFIGURATION_DESCRIPTOR *conf_ptr = (USB_CONFIGURATION_DESCRIPTOR *)descr_ptr;
-//     printProgStr(Conf_Header_str);
-//     printProgStr(Conf_Totlen_str);
-//     print_hex(conf_ptr->wTotalLength, 16);
-//     printProgStr(Conf_Nint_str);
-//     print_hex(conf_ptr->bNumInterfaces, 8);
-//     printProgStr(Conf_Value_str);
-//     print_hex(conf_ptr->bConfigurationValue, 8);
-//     printProgStr(Conf_String_str);
-//     print_hex(conf_ptr->iConfiguration, 8);
-//     printProgStr(Conf_Attr_str);
-//     print_hex(conf_ptr->bmAttributes, 8);
-//     printProgStr(Conf_Pwr_str);
-//     print_hex(conf_ptr->bMaxPower, 8);
-//     return;
-// }
-
-// /* function to print interface descriptor */
-// void printintfdescr(uint8_t *descr_ptr)
-// {
-//     USB_INTERFACE_DESCRIPTOR *intf_ptr = (USB_INTERFACE_DESCRIPTOR *)descr_ptr;
-//     printProgStr(Int_Header_str);
-//     printProgStr(Int_Number_str);
-//     print_hex(intf_ptr->bInterfaceNumber, 8);
-//     printProgStr(Int_Alt_str);
-//     print_hex(intf_ptr->bAlternateSetting, 8);
-//     printProgStr(Int_Endpoints_str);
-//     print_hex(intf_ptr->bNumEndpoints, 8);
-//     printProgStr(Int_Class_str);
-//     print_hex(intf_ptr->bInterfaceClass, 8);
-//     printProgStr(Int_Subclass_str);
-//     print_hex(intf_ptr->bInterfaceSubClass, 8);
-//     printProgStr(Int_Protocol_str);
-//     print_hex(intf_ptr->bInterfaceProtocol, 8);
-//     printProgStr(Int_String_str);
-//     print_hex(intf_ptr->iInterface, 8);
-//     return;
-// }
-// /* function to print endpoint descriptor */
-// void printepdescr(uint8_t *descr_ptr)
-// {
-//     USB_ENDPOINT_DESCRIPTOR *ep_ptr = (USB_ENDPOINT_DESCRIPTOR *)descr_ptr;
-//     printProgStr(End_Header_str);
-//     printProgStr(End_Address_str);
-//     print_hex(ep_ptr->bEndpointAddress, 8);
-//     printProgStr(End_Attr_str);
-//     print_hex(ep_ptr->bmAttributes, 8);
-//     printProgStr(End_Pktsize_str);
-//     print_hex(ep_ptr->wMaxPacketSize, 16);
-//     printProgStr(End_Interval_str);
-//     print_hex(ep_ptr->bInterval, 8);
-
-//     return;
-// }
-
-// void printhubdescr(uint8_t *descrptr, uint8_t addr)
-// {
-//     HubDescriptor *pHub = (HubDescriptor *)descrptr;
-//     uint8_t len = *((uint8_t *)descrptr);
-
-//     printProgStr(PSTR("\r\n\r\nHub Descriptor:\r\n"));
-//     printProgStr(PSTR("bDescLength:\t\t"));
-//     Serial.println(pHub->bDescLength, HEX);
-
-//     printProgStr(PSTR("bDescriptorType:\t"));
-//     Serial.println(pHub->bDescriptorType, HEX);
-
-//     printProgStr(PSTR("bNbrPorts:\t\t"));
-//     Serial.println(pHub->bNbrPorts, HEX);
-
-//     printProgStr(PSTR("LogPwrSwitchMode:\t"));
-//     Serial.println(pHub->LogPwrSwitchMode, BIN);
-
-//     printProgStr(PSTR("CompoundDevice:\t\t"));
-//     Serial.println(pHub->CompoundDevice, BIN);
-
-//     printProgStr(PSTR("OverCurrentProtectMode:\t"));
-//     Serial.println(pHub->OverCurrentProtectMode, BIN);
-
-//     printProgStr(PSTR("TTThinkTime:\t\t"));
-//     Serial.println(pHub->TTThinkTime, BIN);
-
-//     printProgStr(PSTR("PortIndicatorsSupported:"));
-//     Serial.println(pHub->PortIndicatorsSupported, BIN);
-
-//     printProgStr(PSTR("Reserved:\t\t"));
-//     Serial.println(pHub->Reserved, HEX);
-
-//     printProgStr(PSTR("bPwrOn2PwrGood:\t\t"));
-//     Serial.println(pHub->bPwrOn2PwrGood, HEX);
-
-//     printProgStr(PSTR("bHubContrCurrent:\t"));
-//     Serial.println(pHub->bHubContrCurrent, HEX);
-
-//     for (uint8_t i = 7; i < len; i++)
-//         print_hex(descrptr[i], 8);
-
-//     //for (uint8_t i=1; i<=pHub->bNbrPorts; i++)
-//     //    PrintHubPortStatus(&Usb, addr, i, 1);
-// }
-
-// /*function to print unknown descriptor */
-// void printunkdescr(uint8_t *descr_ptr)
-// {
-//     uint8_t length = *descr_ptr;
-//     uint8_t i;
-//     printProgStr(Unk_Header_str);
-//     printProgStr(Unk_Length_str);
-//     print_hex(*descr_ptr, 8);
-//     printProgStr(Unk_Type_str);
-//     print_hex(*(descr_ptr + 1), 8);
-//     printProgStr(Unk_Contents_str);
-//     descr_ptr += 2;
-//     for (i = 0; i < length; i++)
-//     {
-//         print_hex(*descr_ptr, 8);
-//         descr_ptr++;
-//     }
-// }
-
-// uint8_t getconfdescr(uint8_t addr, uint8_t conf)
-// {
-//     uint8_t buf[BUFSIZE];
-//     uint8_t *buf_ptr = buf;
-//     uint8_t rcode;
-//     uint8_t descr_length;
-//     uint8_t descr_type;
-//     uint16_t total_length;
-//     rcode = Usb.getConfDescr(addr, 0, 4, conf, buf); //get total length
-//     LOBYTE(total_length) = buf[2];
-//     HIBYTE(total_length) = buf[3];
-//     if (total_length > 256)
-//     { //check if total length is larger than buffer
-//         printProgStr(Conf_Trunc_str);
-//         total_length = 256;
-//     }
-//     rcode = Usb.getConfDescr(addr, 0, total_length, conf, buf); //get the whole descriptor
-//     while (buf_ptr < buf + total_length)
-//     { //parsing descriptors
-//         descr_length = *(buf_ptr);
-//         descr_type = *(buf_ptr + 1);
-//         switch (descr_type)
-//         {
-//         case (USB_DESCRIPTOR_CONFIGURATION):
-//             printconfdescr(buf_ptr);
-//             break;
-//         case (USB_DESCRIPTOR_INTERFACE):
-//             printintfdescr(buf_ptr);
-//             break;
-//         case (USB_DESCRIPTOR_ENDPOINT):
-//             printepdescr(buf_ptr);
-//             break;
-//         case 0x29:
-//             printhubdescr(buf_ptr, addr);
-//             break;
-//         default:
-//             printunkdescr(buf_ptr);
-//             break;
-//         }                                   //switch( descr_type
-//         buf_ptr = (buf_ptr + descr_length); //advance buffer pointer
-//     }                                       //while( buf_ptr <=...
-//     return (rcode);
-// }
-
-// void PrintDescriptors(uint8_t addr)
-// {
-//     uint8_t rcode = 0;
-//     uint8_t num_conf = 0;
-
-//     rcode = getdevdescr((uint8_t)addr, num_conf);
-//     if (rcode)
-//     {
-//         printProgStr(Gen_Error_str);
-//         print_hex(rcode, 8);
-//     }
-//     Serial.print("\r\n");
-
-//     for (int i = 0; i < num_conf; i++)
-//     {
-//         rcode = getconfdescr(addr, i); // get configuration descriptor
-//         if (rcode)
-//         {
-//             printProgStr(Gen_Error_str);
-//             print_hex(rcode, 8);
-//         }
-//         Serial.println("\r\n");
-//     }
-// }
-
-// void PrintAllDescriptors(UsbDevice *pdev)
-// {
-//     Serial.println("\r\n");
-//     print_hex(pdev->address.devAddress, 8);
-//     Serial.println("\r\n--");
-//     PrintDescriptors(pdev->address.devAddress);
-// }
-
-// uint8_t getdevdescr(uint8_t addr, uint8_t &num_conf)
-// {
-//     USB_DEVICE_DESCRIPTOR buf;
-//     uint8_t rcode;
-//     rcode = Usb.getDevDescr(addr, 0, 0x12, (uint8_t *)&buf);
-//     if (rcode)
-//     {
-//         return (rcode);
-//     }
-//     printProgStr(Dev_Header_str);
-//     printProgStr(Dev_Length_str);
-//     print_hex(buf.bLength, 8);
-//     printProgStr(Dev_Type_str);
-//     print_hex(buf.bDescriptorType, 8);
-//     printProgStr(Dev_Version_str);
-//     print_hex(buf.bcdUSB, 16);
-//     printProgStr(Dev_Class_str);
-//     print_hex(buf.bDeviceClass, 8);
-//     printProgStr(Dev_Subclass_str);
-//     print_hex(buf.bDeviceSubClass, 8);
-//     printProgStr(Dev_Protocol_str);
-//     print_hex(buf.bDeviceProtocol, 8);
-//     printProgStr(Dev_Pktsize_str);
-//     print_hex(buf.bMaxPacketSize0, 8);
-//     printProgStr(Dev_Vendor_str);
-//     print_hex(buf.idVendor, 16);
-//     printProgStr(Dev_Product_str);
-//     print_hex(buf.idProduct, 16);
-//     printProgStr(Dev_Revision_str);
-//     print_hex(buf.bcdDevice, 16);
-//     printProgStr(Dev_Mfg_str);
-//     print_hex(buf.iManufacturer, 8);
-//     printProgStr(Dev_Prod_str);
-//     print_hex(buf.iProduct, 8);
-//     printProgStr(Dev_Serial_str);
-//     print_hex(buf.iSerialNumber, 8);
-//     printProgStr(Dev_Nconf_str);
-//     print_hex(buf.bNumConfigurations, 8);
-//     num_conf = buf.bNumConfigurations;
-//     return (0);
-// }
-//
+  //Copiamos lo que devuelve read_block a fixed_block
+   //Que es block, el ejemplo de C muestra un puntero pero no sé que es?
+   //En el ejemplo en C, el uno es un cero  
+  memcpy(new_block, read_block(Usb, 0, true), kBufferSize); 
+      
+  //Llenamos el arreglo
+  // for (int i = 0; i < kBufferSize; i++)
+  // {
+  //   fixed_block[i] = 0;
+  // }
+  // Check for valid magic numbers:
+  // This is hardly an exhaustive list and I can find no definitive
+  // documentation that lists all possible values; further, I suspect it is
+  // more of a header than a magic number...
+  if ((new_block[0] == 0x55) ||
+      (new_block[0] == 0xFF) ||
+      (new_block[0] == 0x01) ||
+      ((new_block[0] == 0x00) && (new_block[1] == 0x1E)) ||
+      ((new_block[0] == 0x00) && (new_block[1] == 0x01)))
+  {
+    //Retornar el valor del bloque, creo, hay que entender la funcion
+    Serial.println("Listo para retornar");
+    //return OK;
+    return fixed_block;
+  }
+  else
+  {
+    Serial.println("WH1080: readFixedBlock bad magic number %2.2X %2.2X");
+    Serial.println((int)new_block[0]);
+    Serial.println((int)new_block[1]);
+    Serial.println("WH1080: You may want to clear the memory on the station "
+                  "console to remove any invalid records or data...");
+    //Valio madres, no se leeyo correctamente, restablecer la estación
+    //return ERROR_ABORT;
+  }  
+}
