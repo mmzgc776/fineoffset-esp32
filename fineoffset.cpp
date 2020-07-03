@@ -160,7 +160,7 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
   uint8_t endPoint = 0; //81 en el descriptor de usb y script 0 
   uint8_t bmReqType = 33; //usb.TYPE_CLASS + usb.RECIP_INTERFACE en getData.py
   uint8_t bRequest = 0x09;  //usb request, set config
-  uint8_t wValLo = 0x00;; 
+  uint8_t wValLo = 0x00;
   uint8_t wValHi = 0x02;
   uint16_t wInd  = 0;
   uint16_t total = 8;  //rqstBuffer.size()
@@ -190,7 +190,7 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
   }
   //Leer y descartar lo anterior, esto venía en el ejemplo en C
   //( *( work->medium.usbhidRead ) )( &work->medium, newBuffer, 32, 500 );
-  Usb.inTransfer(usb_addr, endPoint, &BufferSize, readBuffer);
+  //Usb.inTransfer(usb_addr, endPoint, &BufferSize, readBuffer);
   Serial.println("Control Request");
   uint8_t result;
   result = Usb.ctrlReq(usb_addr, //Address
@@ -198,7 +198,7 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
             bmReqType, //bmReqType, //33 (ejemplo ps3 bmREQ_HID_OUT, es similar al de wview )
             bRequest, //09 set configuration
             wValLo, //bConfigurationValue 0x0000200: 00 02 o 02 00
-            wValHi, //bConfigurationValue este on el de arriba
+            wValHi, //bConfigurationValue este o el de arriba
             wInd, //siempre es 0 inguesu
             total, //bytes?
             sizeof(rqstBuffer) / sizeof(byte), //bytes a leer
@@ -206,7 +206,7 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
             NULL);  //Timeout?
   Serial.println(result, HEX);
   Serial.println("In transfer");
-  result = Usb.inTransfer(usb_addr, endPoint, &BufferSize, readBuffer);
+  result = Usb.inTransfer(usb_addr, endPoint, &BufferSize, readBuffer, 1000);
   Serial.println(result, HEX);
   //Prueba de salida de una lectura unica
   Serial.print("ReadBuffer: ");
@@ -220,8 +220,3 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
   //Serial.println(".");
   return output;
 }
-
-
-
-
-
