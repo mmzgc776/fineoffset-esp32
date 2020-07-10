@@ -1,7 +1,8 @@
 {
-    "board": "espressif:esp32:esp32wrover",
+    "board": "esp32:esp32:esp32wrover",
     "configuration": "PartitionScheme=default,FlashMode=qio,FlashFreq=80,UploadSpeed=921600,DebugLevel=none",
     "sketch": "fineoffset-esp32.ino",
     "output": "../build",
-    "port": "/dev/ttyUSB0"
+    "port": "COM3",
+    "port2": "[COM3]"
 }
