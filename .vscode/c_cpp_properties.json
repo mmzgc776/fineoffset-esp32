@@ -1,30 +1,18 @@
 {
     "configurations": [
         {
-            "name": "Linux",
-            "includePath": [
-                "/home/moy/Arduino/hardware/espressif/esp32/**",
-                "C:/Users/moy/Documents/Arduino/libraries/hardware/espressif/esp32/**",
-                "C:\\Users\\moy\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\1.0.4\\**",
-                "C:\\Users\\moy\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\**"
-            ],
-            "forcedInclude": [],
-            "intelliSenseMode": "gcc-x64",
-            "compilerPath": "/usr/bin/gcc",
-            "cStandard": "c11",
-            "cppStandard": "c++17"
-        },
-        {
             "name": "Win32",
             "includePath": [
-                "${workspaceRoot}",
-                "C:\\Users\\moy\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\2.7.1\\**",
-                "C:\\Users\\moy\\AppData\\Local\\Arduino15\\packages\\esp8266\\tools\\**",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\tools\\**",
-                "C:\\Program Files (x86)\\Arduino\\libraries\\**",
-                "C:\\Users\\moy\\Documents\\Arduino\\libraries\\**",
                 "C:\\Users\\moy\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\**",
-                "C:\\Users\\moy\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\1.0.4\\**"
+                "C:\\Users\\moy\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\1.0.3\\**"
+            ],
+            "forcedInclude": [],
+            "intelliSenseMode": "msvc-x64"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "/home/moy/Arduino/hardware/espressif/esp32/**"
             ],
             "forcedInclude": []
         }

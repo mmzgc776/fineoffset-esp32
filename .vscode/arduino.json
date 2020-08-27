@@ -1,8 +1,7 @@
 {
-    "board": "esp32:esp32:esp32wrover",
-    "configuration": "PartitionScheme=default,FlashMode=qio,FlashFreq=80,UploadSpeed=921600,DebugLevel=none",
-    "sketch": "fineoffset-esp32.ino",
-    "output": "../build",
+    "board": "esp32:esp32:ttgo-lora32-v1",
+    "configuration": "FlashFreq=80,UploadSpeed=921600,DebugLevel=none",
     "port": "COM3",
-    "port2": "[COM3]"
+    "sketch": "fineoffset-esp32.ino",
+    "output": "../ArduinoOutput"
 }

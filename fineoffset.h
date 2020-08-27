@@ -1,7 +1,5 @@
-#ifndef usbhub
-#define usbhub
-#include <usbhub.h>
-#endif
+#include <usbhid.h>
+#include <hiduniversal.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -10,6 +8,7 @@
 
 #define WH1080_BUFFER_CHUNK         0x20        // Size of chunk received over USB
 #define IN_BUFFER_SIZE       32 
+
 class DeviceReader
 {
 public:
@@ -18,7 +17,7 @@ public:
   int ciclos = 0;  
   int vendor_id = 1941;
   int product_id = 8021;
-  const uint8_t endPoint = 0; //81 en el descriptor de usb y script 0 
+  uint8_t endPoint = 0;//81 en el descriptor de usb y script 0 
   //int usb_endpoint = 81; // revisar para que sirve, evitar confusión
   const uint8_t usb_addr = 1; //Dirección en USB_desc 1 dirección del dispositivo en el hub???
   //int address = 1; //Direccion en memoria de la estacion
@@ -39,5 +38,4 @@ public:
   //cuando está correcto, usa los magic_numbers para validar
   //Ptr se llama block en el ejemplo de C, pero ptr en el ejemplo de python
   uint8_t* read_fixed_block(USB Usb, int hi = 0x0100);  
-
 };

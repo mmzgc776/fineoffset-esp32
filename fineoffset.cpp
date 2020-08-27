@@ -1,11 +1,9 @@
-#ifndef usbhub
-#include <usbhub.h>
-#endif
-#include <usbhid.h>
-#include <hiduniversal.h>
 #include "fineoffset.h"
 #include <stdio.h>
 #include <string.h>
+#include <usbhid.h>
+#include <hiduniversal.h>
+// #include <hidescriptorparser.h>
 
 //Se pretende adaptar los controladores de FineOffset WH1080
 //Aquí están las funciones básicas para la implementación de un extractor por USB
@@ -15,6 +13,7 @@ DeviceReader::DeviceReader() {}
 //Abrimos el puerto y lo dejamos disponible
 void DeviceReader::openPort(USB Usb)
 {
+  Serial.println("Start USB");
   Serial.println("Clase DeviceReader/openport");
   find_device(Usb);
 }
@@ -22,42 +21,110 @@ void DeviceReader::openPort(USB Usb)
 //Find the vendor and product ID on the USB.
 void DeviceReader::find_device(USB Usb)
 {
+  // HIDUniversal2 Hid(&Usb);
+  // UniversalReportParser Uni;
   //Marcas de control
   Serial.println("Clase DeviceReader/usb.task()");
+
   //Se inicia el host usb
-  Usb.Task();
+  //Usb.Task();
   Serial.println("Clase DeviceReader/find_device");
   if (Usb.getUsbTaskState() == USB_STATE_RUNNING)
   {
     Serial.println("USB_STATE_RUNNING > read_block, ptr");
+
     //Device reset aparentemente solo necesario sobre windows
-    //delay 12ms
-    delay(12);
-    //Device Request Get Descriptor: Configuration 0 (9bytes)
+    //Trataremos de imitar la negociación que realiza el controlador en windows.
+    //Terminamos por la linea 165...
 
-    //Device Request Get Descriptor: Configuration 0 (34bytes)
-    //Intentamos ajustar la configuración a 1 hid?  y luego continuamos
-    Serial.println("Escribimos la configuracion a 1");
-    uint8_t retval = Usb.setConf(usb_addr, endPoint, 1);
-    Serial.println(retval, HEX);
-    delay(45);
-    Serial.println("Delay 90ms");
-    delay(45);
-    //Controlrequest 8 bytes
+    //Device Request Get Descriptor: Configuration 0 (59bytes)
+    // Serial.println("Get Descriptor: Configuration 0 (59bytes)");
 
-    //Recibir 52 bytes DeviceRequest get descriptor unknown
-    Serial.println("Control Request 52 b");
-    uint8_t result;
-    uint16_t total = 0x74; //rqstBuffer.size()
-    result = Usb.getDevDescr(usb_addr, endPoint, total, NULL);
-    // uint8_t bmReqType = 0x81;  //Tomado de la traza del analizador
-    // uint8_t bRequest = 0x06; //usb request, get desc Tomado de la traza del analizador
+    // uint8_t conf=1; // Que significa este parametro de configuracion?
+    // uint8_t rcode;
+    // uint16_t total = 59; //rqstBuffer.size()
+    // uint8_t confDescData59[total] ; //bytes que leeremos de los descriptores
+    // rcode = Usb.getConfDescr(usb_addr, endPoint, total, conf, confDescData59);
+    // Serial.print("rcode=");
+    // Serial.println(rcode, HEX);
+    // for (int i = 0; i < total; i++)
+    // {
+    //   //Serial.print(i);
+    //   Serial.print(" ");
+    //   Serial.print(confDescData59[i], HEX);
+    //   Serial.print(" ");
+    // }
+    // Serial.println(".");
+
+    // delay(70);
+    // //Device Request Get Descriptor: Device 0 (18bytes)
+    // Serial.println("Get Descriptor: Device 0 (18bytes)");
+    // total = 18; //rqstBuffer.size()
+    // uint8_t devDescData[total] ; //bytes que leeremos de los descriptores
+    // rcode = Usb.getDevDescr(usb_addr, endPoint, total, devDescData);
+    // Serial.print("rcode=");
+    // Serial.println(rcode, HEX);
+    // for (int i = 0; i < total; i++)
+    // {
+    //   //Serial.print(i);
+    //   Serial.print(" ");
+    //   Serial.print(devDescData[i], HEX);
+    //   Serial.print(" ");
+    // }
+    // Serial.println(".");
+
+    // //Device Request Get Descriptor: Configuration 0 (9bytes)
+    // Serial.println("Get Descriptor: Configuration 0 (9bytes)");
+    // conf=1;
+    // total = 9; //rqstBuffer.size()
+    // uint8_t confDescData[total] ; //bytes que leeremos de los descriptores
+    // rcode = Usb.getConfDescr(usb_addr, endPoint, total, conf, confDescData);
+    // Serial.print("rcode=");
+    // Serial.println(rcode, HEX);
+    // for (int i = 0; i < total; i++)
+    // {
+    //   //Serial.print(i);
+    //   Serial.print(" ");
+    //   Serial.print(confDescData[i], HEX);
+    //   Serial.print(" ");
+    // }
+    // Serial.println(".");
+
+    // //Device Request Get Descriptor: Configuration 0 (34bytes)
+    // Serial.println("Get Descriptor: Configuration 0 (34bytes)");
+    // conf=1;
+    // total = 34; //rqstBuffer.size()
+    // uint8_t confDescData34[total] ; //bytes que leeremos de los descriptores
+    // rcode = Usb.getConfDescr(usb_addr, endPoint, total, conf, confDescData34);
+    // Serial.print("rcode=");
+    // Serial.println(rcode, HEX);
+    // for (int i = 0; i < total; i++)
+    // {
+    //   //Serial.print(i);
+    //   Serial.print(" ");
+    //   Serial.print(confDescData34[i], HEX);
+    //   Serial.print(" ");
+    // }
+    // Serial.println(".");
+
+    // //Intentamos ajustar la configuración a 1 hid?  y luego continuamos
+    // Serial.println("Escribimos la configuracion a 1");
+    // uint8_t retval = Usb.setConf(usb_addr, endPoint, 1);
+
+    // Serial.println(retval, HEX);
+    // // delay(45);
+    // // Serial.println("Delay 90ms");
+    // // delay(45);
+    // //Controlrequest 8 bytes
+    // Serial.println("Control Request 8b");
+    // uint8_t bmReqType = 0x21;  //Tomado de la traza del analizador
+    // uint8_t bRequest = 0x0A; //usb request, get desc Tomado de la traza del analizador
     // uint8_t wValLo = 0x00;
-    // uint8_t wValHi = 0x22;
+    // uint8_t wValHi = 0x00;
     // uint16_t wInd = 0;
-    // uint16_t total = 0x74; //rqstBuffer.size()
-    // uint8_t rqstBuffer[56];    
-    // result = Usb.ctrlReq(usb_addr,                          //Address
+    // total = 0; //rqstBuffer.size()
+    // //uint8_t rqstBuffer[total];
+    // rcode = Usb.ctrlReq(usb_addr,                          //Address
     //                      endPoint,                          //usb Endpoint
     //                      bmReqType,                         //bmReqType, //33 (ejemplo ps3 bmREQ_HID_OUT, es similar al de wview )
     //                      bRequest,                          //09 set configuration
@@ -65,11 +132,46 @@ void DeviceReader::find_device(USB Usb)
     //                      wValHi,                            //bConfigurationValue este o el de arriba
     //                      wInd,                              //siempre es 0 inguesu
     //                      total,                             //bytes?
-    //                      sizeof(rqstBuffer) / sizeof(byte), //bytes a leer
-    //                      rqstBuffer,                        //puntero del bufer de request
+    //                      NULL, //bytes a leer
+    //                      NULL,                        //puntero del bufer de request
     //                      NULL);                             //Timeout? Parser!
-    Serial.println(result, HEX);
-    delay(10000);
+    // //Esto solo espera un rcode de 0 pero sin respuesta
+    // Serial.print("rcode=");
+    // Serial.println(rcode, HEX);
+
+    // //Recibir 52 bytes DeviceRequest get descriptor unknown
+    // Serial.println("Control Request 52 b");
+    // bmReqType = 0x81;  //Tomado de la traza del analizador
+    //  bRequest = 0x06; //usb request, get desc Tomado de la traza del analizador
+    //  wValLo = 0x00;
+    //  wValHi = 0x22;
+    //  wInd = 0;
+    // total = 52; //rqstBuffer.size()
+    // uint8_t rqstBuffer52[total];
+
+    // rcode = Usb.ctrlReq(usb_addr,                          //Address
+    //                      endPoint,                          //usb Endpoint
+    //                      bmReqType,                         //bmReqType, //33 (ejemplo ps3 bmREQ_HID_OUT, es similar al de wview )
+    //                      bRequest,                          //09 set configuration
+    //                      wValLo,                            //bConfigurationValue 0x0000200: 00 02 o 02 00
+    //                      wValHi,                            //bConfigurationValue este o el de arriba
+    //                      wInd,                              //siempre es 0 inguesu
+    //                      total,                             //bytes?
+    //                      sizeof(rqstBuffer52) / sizeof(byte), //bytes a leer
+    //                      rqstBuffer52,                        //puntero del bufer de request
+    //                      NULL);                             //Timeout? Parser!
+    // Serial.print("rcode=");
+    // Serial.println(rcode, HEX);
+
+    // for (int i = 0; i < total; i++)
+    // {
+    //   //Serial.print(i);
+    //   Serial.print(" ");
+    //   Serial.print(rqstBuffer52[i], HEX);
+    //   Serial.print(" ");
+    // }
+    // Serial.println(".");
+    delay(3000);    
     read_fixed_block(Usb);
   }
 }
@@ -201,6 +303,7 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
   Serial.println("Iniciando lectura de usb: read_usb_block");
 
   int offset = address;
+  endPoint = 0;
   uint8_t bmReqType = 33;  //usb.TYPE_CLASS + usb.RECIP_INTERFACE en getData.py
   uint8_t bRequest = 0x09; //usb request, set config
   uint8_t wValLo = 0x00;
@@ -223,6 +326,10 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
   uint8_t readBuffer[BUFFER_SIZE];
   uint8_t *output = new uint8_t[BUFFER_SIZE];
 
+  //Leer y descartar lo anterior, esto venía en el ejemplo en C
+  //( *( work->medium.usbhidRead ) )( &work->medium, newBuffer, 32, 500 );
+  //Usb.inTransfer(usb_addr, endPoint, &BufferSize, readBuffer);
+  Serial.println("Control Request:");
   Serial.print(bmReqType);
   Serial.print(", ");
   Serial.print(bRequest);
@@ -232,10 +339,6 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
     Serial.print(rqstBuffer[i]);
     Serial.print(", ");
   }
-  //Leer y descartar lo anterior, esto venía en el ejemplo en C
-  //( *( work->medium.usbhidRead ) )( &work->medium, newBuffer, 32, 500 );
-  //Usb.inTransfer(usb_addr, endPoint, &BufferSize, readBuffer);
-  Serial.println("Control Request");
   uint8_t result;
   result = Usb.ctrlReq(usb_addr,                          //Address
                        endPoint,                          //usb Endpoint
@@ -248,48 +351,72 @@ uint8_t *DeviceReader::read_usb_block(USB Usb, int address)
                        sizeof(rqstBuffer) / sizeof(byte), //bytes a leer
                        rqstBuffer,                        //puntero del bufer de request
                        NULL);                             //Timeout?
+  Serial.print("rcode=");
   Serial.println(result, HEX);
-  //Esperamos 7 ms
-  delay(8);
+  //Esperamos 7 ms 15 ms en la traza del analizador, amole poniendo poquito más
+  delay(7);
   //endPoint = 1;
   //Intentamos leer
+  int outIndex = 0;
   while (true)
   {
-    BUFFER_SIZE = IN_BUFFER_SIZE;
-    Serial.println("In transfer");
-    result = Usb.inTransfer(usb_addr, endPoint, &BUFFER_SIZE, readBuffer, 500);
-    Serial.print(usb_addr);
-    Serial.print(", ");
-    Serial.print(endPoint);
-    Serial.print(", ");
-    Serial.print(BUFFER_SIZE);
-    Serial.print(", ");
-    Serial.println(result, HEX);
-    if (result == 0)
+    //Leer hasta que tengamos 32 bytes de datos
+    Serial.println("In transfer: ");
+    //Haremos 4 lecturas
+    for (int read = 0; read < 4; read++)
     {
-      Serial.println("Correctoooooooooooooooooooooooooooooooooooooooooooooooooo");
+      //de 8 bytes cada una
+      //result = Usb.inTransfer(usb_addr, 1, &BUFFER_SIZE, readBuffer, 8);
+      Serial.print("Intentando leer bytes: ");
+      result = Usb.inTransfer(usb_addr, 1, &BUFFER_SIZE, readBuffer, 8);
+      Serial.print("rcode=");
+      Serial.println(result, HEX);
+      //Si sale bien
+      if (result == 0)
+      {
+        Serial.println("Correctoooooooooooooooooooooooooooooooooooooooooooooooooo");
+        //Asignar los bytes al output
+        for (int index = 0; index < 32; index++)
+        {          
+          Serial.print(readBuffer[index],HEX);
+          Serial.print(" ");
+          output[outIndex] = readBuffer[index];
+          outIndex++;
+        }
+      }
+      //Reset buffer size
+      BUFFER_SIZE = IN_BUFFER_SIZE;
+      //Manejo de errores
+      //hrJERR                                          0x0D
+      //USB_ERROR_ADDRESS_NOT_FOUND_IN_POOL             0xD6
+      //USB_ERROR_EP_NOT_FOUND_IN_TBL                   0xDB
+      if (result == 0x0D || result == 0xD6 || result == 0xDB)
+      {
+        delay(8);
+        //break;
+      }
+      if (result == 0x0E)
+      {
+        delay(8);
+        //break;
+      }
+    }
+    //Si el indice de lectura llegó a 32 fuga
+    if (outIndex >= 32)
+    {
+      Serial.println("Listo");
       break;
     }
-    if (result == 0x0D || result == 0xD6 || result == 0xDB)
-    {
-      //break;
-    }
-    if (result == 0x0E)
-    {
-      //break;
-    }
   }
-  //Serial.println(result, HEX);
+  Serial.println("Lectura completa o error");
+  for (int index = 0; index < 32; index++)
+        {
+          Serial.print(output[index]);
+          Serial.print(" ");
+        }
+  Serial.println(".");       
+
+  
   delay(8);
-  //Prueba de salida de una lectura unica
-  Serial.print("ReadBuffer: ");
-  for (int i = 0; i < BUFFER_SIZE; i++)
-  {
-    // Serial.print(" ");
-    // Serial.print(readBuffer[i]);
-    // Serial.print(" ");
-    output[i] = readBuffer[i];
-  }
-  //Serial.println(".");
   return output;
 }
