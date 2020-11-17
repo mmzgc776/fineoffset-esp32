@@ -47,99 +47,99 @@
 int numLectura = 0;
 
 
-//the wview daemon work area
-typedef struct
-{
-    pid_t           myPid;
-    //WVIEW_MEDIUM    medium;
-    void*            stationData;               // station-specific data store
-    int             runningFlag;
-    //RAD_THREAD_ID   threadId;                   // Non-NULL if station uses threads
+// //the wview daemon work area
+// typedef struct
+// {
+//     pid_t           myPid;
+//     //WVIEW_MEDIUM    medium;
+//     void*            stationData;               // station-specific data store
+//     int             runningFlag;
+//     //RAD_THREAD_ID   threadId;                   // Non-NULL if station uses threads
 
-    //int             stationGeneratesArchives;
-    //char            pidFile[WVIEW_MAX_PATH];
-    //char            fifoFile[WVIEW_MAX_PATH];
-    //char            statusFile[WVIEW_MAX_PATH];
-    char            stationType[64];
-    char            stationInterface[16];
-    //char            stationDevice[WVIEW_MAX_PATH];
-    char            stationHost[256];
-    int             stationPort;
-    int             stationIsWLIP;
-    int             stationToggleDTR;
-    int             stationRainSeasonStart;
-    float           stationRainStormTrigger;
-    int             stationRainStormIdleHours;
-    float           stationRainYTDPreset;
-    float           stationETYTDPreset;
-    int             stationRainETPresetYear;
-    uint16_t        archiveInterval;
-    int16_t         latitude;
-    int16_t         longitude;
-    int16_t         elevation;
-    time_t          archiveDateTime;
-    time_t          nextArchiveTime;            // detect system clock changes
-    // TIMER_ID        archiveTimer;
-    // TIMER_ID        cdataTimer;
-    // TIMER_ID        pushTimer;
-    // TIMER_ID        syncTimer;
-    // TIMER_ID        ifTimer;
-    uint32_t        cdataInterval;
-    uint32_t        pushInterval;
-    //SENSOR_STORE    sensors;
-    //LOOP_PKT        loopPkt;
-    //LOOP_PKT        lastLoopPkt;
-    int             numReadRetries;
-    int             archiveRqstPending;
+//     //int             stationGeneratesArchives;
+//     //char            pidFile[WVIEW_MAX_PATH];
+//     //char            fifoFile[WVIEW_MAX_PATH];
+//     //char            statusFile[WVIEW_MAX_PATH];
+//     char            stationType[64];
+//     char            stationInterface[16];
+//     //char            stationDevice[WVIEW_MAX_PATH];
+//     char            stationHost[256];
+//     int             stationPort;
+//     int             stationIsWLIP;
+//     int             stationToggleDTR;
+//     int             stationRainSeasonStart;
+//     float           stationRainStormTrigger;
+//     int             stationRainStormIdleHours;
+//     float           stationRainYTDPreset;
+//     float           stationETYTDPreset;
+//     int             stationRainETPresetYear;
+//     uint16_t        archiveInterval;
+//     int16_t         latitude;
+//     int16_t         longitude;
+//     int16_t         elevation;
+//     time_t          archiveDateTime;
+//     time_t          nextArchiveTime;            // detect system clock changes
+//     // TIMER_ID        archiveTimer;
+//     // TIMER_ID        cdataTimer;
+//     // TIMER_ID        pushTimer;
+//     // TIMER_ID        syncTimer;
+//     // TIMER_ID        ifTimer;
+//     uint32_t        cdataInterval;
+//     uint32_t        pushInterval;
+//     //SENSOR_STORE    sensors;
+//     //LOOP_PKT        loopPkt;
+//     //LOOP_PKT        lastLoopPkt;
+//     int             numReadRetries;
+//     int             archiveRqstPending;
 
-    // Calibration:
-    float           calMBarometer;
-    float           calCBarometer;
-    float           calMPressure;
-    float           calCPressure;
-    float           calMAltimeter;
-    float           calCAltimeter;
-    float           calMInTemp;
-    float           calCInTemp;
-    float           calMOutTemp;
-    float           calCOutTemp;
-    float           calMInHumidity;
-    float           calCInHumidity;
-    float           calMOutHumidity;
-    float           calCOutHumidity;
-    float           calMWindSpeed;
-    float           calCWindSpeed;
-    float           calMWindDir;
-    float           calCWindDir;
-    float           calMRain;
-    float           calCRain;
-    float           calMRainRate;
-    float           calCRainRate;
+//     // Calibration:
+//     float           calMBarometer;
+//     float           calCBarometer;
+//     float           calMPressure;
+//     float           calCPressure;
+//     float           calMAltimeter;
+//     float           calCAltimeter;
+//     float           calMInTemp;
+//     float           calCInTemp;
+//     float           calMOutTemp;
+//     float           calCOutTemp;
+//     float           calMInHumidity;
+//     float           calCInHumidity;
+//     float           calMOutHumidity;
+//     float           calCOutHumidity;
+//     float           calMWindSpeed;
+//     float           calCWindSpeed;
+//     float           calMWindDir;
+//     float           calCWindDir;
+//     float           calMRain;
+//     float           calCRain;
+//     float           calMRainRate;
+//     float           calCRainRate;
 
-    // Alert Emails:
-    int             IsAlertEmailsEnabled;
-    //char            alertEmailFromAdrs[WVIEW_STRING1_SIZE];
-    //char            alertEmailToAdrs[WVIEW_STRING1_SIZE];
-    int             IsTestEmailEnabled;
+//     // Alert Emails:
+//     int             IsAlertEmailsEnabled;
+//     //char            alertEmailFromAdrs[WVIEW_STRING1_SIZE];
+//     //char            alertEmailToAdrs[WVIEW_STRING1_SIZE];
+//     int             IsTestEmailEnabled;
 
-    int             showStationIF;
+//     int             showStationIF;
 
-    // Debug:
-    int             DebugStationInput;
-    int             DebugStationOutput;
-    int             DebugStationByteCount;
+//     // Debug:
+//     int             DebugStationInput;
+//     int             DebugStationOutput;
+//     int             DebugStationByteCount;
 
-    int             UsbRawBytes;
-    int             StreamBytes;
-    int             PacketBytes;
-    int             ChecksumBytes;
-    int             BadLengthBytes;
-    int             StatCount;
-    int             UnknownPacketType;
+//     int             UsbRawBytes;
+//     int             StreamBytes;
+//     int             PacketBytes;
+//     int             ChecksumBytes;
+//     int             BadLengthBytes;
+//     int             StatCount;
+//     int             UnknownPacketType;
 
-    int             exiting;
+//     int             exiting;
 
-} WVIEWD_WORK;
+// } WVIEWD_WORK;
 
 // Types for decoding raw weather station data.
 //	ub 	unsigned byte

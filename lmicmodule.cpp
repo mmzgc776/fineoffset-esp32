@@ -1,16 +1,14 @@
 //Includes de comunicacion
 // #include <Arduino.h>
 // #include <SPI.h>
+#ifndef lmich
 #include "lmicmodule.h"
+#endif
 #include <lmic.h>
 #include <hal/hal.h>
 
-// #include <stdio.h>
-// #include <string.h>
 
 MyLMIC::MyLMIC() {}
-
-int ReadCount;
 
 bool finished = false;
 
@@ -51,7 +49,7 @@ void forceTxSingleChannelDr(int channel)
 }
 
 void onEvent(ev_t ev)
-{
+{   
     Serial.print(os_getTime());
     Serial.print(": ");
     switch (ev)
@@ -89,13 +87,13 @@ void onEvent(ev_t ev)
         Serial.println(F("EV_REJOIN_FAILED"));
         break;
     case EV_TXCOMPLETE:
-        display.clear();
-        display.drawString(0, 20, "EV_TXCOMPLETE event!");
+        //display.clear();
+        //display.drawString(0, 20, "EV_TXCOMPLETE event!");
         Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
         if (LMIC.txrxFlags & TXRX_ACK)
         {
             Serial.println(F("Received ack"));
-            display.drawString(0, 30, "Received ACK.");
+            //display.drawString(0, 30, "Received ACK.");
         }
         if (LMIC.dataLen)
         {
@@ -103,24 +101,25 @@ void onEvent(ev_t ev)
             Serial.print(F("Received "));
             Serial.print(LMIC.dataLen);
             Serial.println(F(" bytes of payload"));
-            display.drawString(0, 30, "Received DATA.");
+            //display.drawString(0, 30, "Received DATA.");
             for (i = 0; i < LMIC.dataLen; i++)
                 TTN_response[i] = LMIC.frame[LMIC.dataBeg + i];
             dataLength = LMIC.dataLen;
             TTN_response[i] = 0;
-            display.drawString(0, 40, String(TTN_response));
+            //display.drawString(0, 40, String(TTN_response));
             Serial.println(String(TTN_response));
         }
         // Schedule next transmission
         //Serial.println(US_PER_OSTICK);
         //Serial.println(OSTICKS_PER_SEC);
         //Serial.println(LMIC.radio.rxlate_count);
-        os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
+        //Creo que esta llamada ya no será necesaria, la conservo porque creo que es ilustrativa
+        //os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
         finished=true;
         digitalWrite(LEDPIN, LOW);
         //definida en el ino
-        display.drawString(0, 50, String(ReadCount));
-        display.display();
+        //display.drawString(0, 50, String(ReadCount));
+        //display.display();
         break;
     case EV_LOST_TSYNC:
         Serial.println(F("EV_LOST_TSYNC"));
@@ -165,7 +164,7 @@ void onEvent(ev_t ev)
     }
 }
 
-void do_send(osjob_t *j)
+void MyLMIC::do_send(osjob_t *jn, CayenneLPP payload)
 {
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND)
@@ -176,55 +175,53 @@ void do_send(osjob_t *j)
     {
         Serial.println("Start Payload Building"); //Moy
         // Prepare upstream data transmission at the next possible time.
-        //Leer dato de la flash
-        uint32_t humidity = 2222;
-        uint32_t temperature = 1000;
-
-        Serial.println("H: " + String(humidity));
-        Serial.println("T: " + String(temperature));
-
-        byte payload[6];
-        payload[0] = highByte(humidity);
-        //Serial.println(payload[0]);
-        payload[1] = lowByte(humidity);
-        //Serial.println(payload[1]);
-        payload[2] = highByte(temperature);
-        //Serial.println(payload[2]);
-        payload[3] = lowByte(temperature);
-        // Serial.println(payload[3]);
-
-        payload[4] = highByte(ReadCount);
-        //Serial.println(payload[4]);
-        payload[5] = lowByte(ReadCount);
-        //Serial.println(payload[5]);
-        //Ver el cpu que se está usando
-        //Serial.print("send() running on core ");
-        //Serial.println(xPortGetCoreID());
+        // Leer dato de la flash
+        // Convertirlo todo a un solo arreglo de bytes
+        // byte payload[8];
+        // payload[0] = pld.delay;
+        // //Serial.println(payload[0]);
+        // payload[1] = pld.inTemp;
+        // //Serial.println(payload[1]);
+        // payload[2] = pld.inHum;
+        // //Serial.println(payload[2]);      
+        // payload[3] = pld.pressure;
+        // //Serial.println(payload[4]);
+        // payload[4] = highByte(pld.readcount);        
+        // //Serial.println(payload[5]);
+        // payload[5] = lowByte(pld.readcount);
+        // payload[6] = highByte(pld.mempos);        
+        // //Serial.println(payload[5]);
+        // payload[7] = lowByte(pld.mempos);
+        // //Ver el cpu que se está usando
+        // //Serial.print("send() running on core ");
+        // //Serial.println(xPortGetCoreID());
 
         //Check frequency
         //Serial.println(LMIC.freq);
-        ReadCount++;
-        Serial.print("Numero de envio: ");
-        Serial.println(ReadCount);
+        //readcount++;
+        Serial.print("Tamaño de payload: ");
+        //Serial.println(ReadCount);
+        Serial.println(payload.getSize());
         //Regresar a 0 el ultimo parametro, es la peticion de confirmación
-        LMIC_setTxData2(1, (uint8_t *)payload, sizeof(payload), 0);
+        LMIC_setTxData2(1, payload.getBuffer(), payload.getSize(), 0);
         Serial.println(F("Packet queued"));
-        digitalWrite(LEDPIN, HIGH);
-        display.clear();
-        display.drawString(0, 30, "Sending uplink packet...");
-        display.drawString(0, 50, String(ReadCount));
-        display.display();
-    }
+        //digitalWrite(LEDPIN, HIGH);
+        // display.clear();
+        // display.drawString(0, 30, "Sending uplink packet...");
+        // display.drawString(0, 50, String(readcount));
+        // display.display();
+        ReadCount++;
+    }    
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
 
-void loraSetup(int readcount)
+void MyLMIC::loraSetup(int readcount)
 {
     ReadCount=readcount;
     //while (!Serial); // wait for Serial to be initialized
     //Serial.begin(115200);
-    delay(1500); // per sample code on RF_95 test
+    //delay(1500); // per sample code on RF_95 test
     Serial.println("Starting lmic routine");
 
     //Ver el cpu que se está usando
@@ -234,32 +231,33 @@ void loraSetup(int readcount)
     //Desactivar el SS de USB Host, spi.h debería manejarlo por si mismo?
     //digitalWrite(USB_SS, HIGH);
     
-    pinMode(LEDPIN, OUTPUT);
-    pinMode(OLED_RESET, OUTPUT);
-    digitalWrite(OLED_RESET, LOW);
-    delay(50);
-    digitalWrite(OLED_RESET, HIGH);
+    //Todas las referencias a oled y display las eliminé para poder abstraer esos mensajes al loop principal
+    // pinMode(LEDPIN, OUTPUT);
+    // pinMode(OLED_RESET, OUTPUT);
+    // digitalWrite(OLED_RESET, LOW);
+    // delay(50);
+    // digitalWrite(OLED_RESET, HIGH);
 
-    display.init();
-    display.flipScreenVertically();
-    display.setFont(ArialMT_Plain_10);
+    // display.init();
+    // display.flipScreenVertically();
+    // display.setFont(ArialMT_Plain_10);
 
-    display.setTextAlignment(TEXT_ALIGN_LEFT);
+    // display.setTextAlignment(TEXT_ALIGN_LEFT);
 
-    display.drawString(0, 0, "Init!");
-    display.display();
+    // display.drawString(0, 0, "Init!");
+    // display.display();
 
     // LMIC init
     os_init();
 
-    display.drawString(0, 8, "LMIC was initiated!");
-    display.display();
+    // display.drawString(0, 8, "LMIC was initiated!");
+    // display.display();
 
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
 
-    display.drawString(0, 16, "LMIC reset -> OK!");
-    display.display();
+    // display.drawString(0, 16, "LMIC reset -> OK!");
+    // display.display();
 
 // Set static session parameters. Instead of dynamically establishing a session
 // by joining the network, precomputed session parameters are be provided.
@@ -351,10 +349,11 @@ void loraSetup(int readcount)
     LMIC_setDrTxpow(DR_SF7, 14);
     //ampliamos la ventanda de rx
     //LMIC_setClockError(MAX_CLOCK_ERROR * 10 / 100);
-    do_send(&sendjob);
+    //Aquí no es necesario envíar aun
+    //do_send(&sendjob, ReadCount);
 }
 
-bool loraLoop()
+bool MyLMIC::loraLoop()
 {
     finished = false;
     //Ver el cpu que se está usando
@@ -365,8 +364,8 @@ bool loraLoop()
     if (dataLength>0){        
         Serial.print("Está definida la respuesta como: ");
         Serial.println(String(TTN_response));
-        //Al vuelo, aquí somos bien machos
-        ReadCount=atoi(TTN_response);
+        //Al vuelo, aquí somos bien machos antes ReadCount
+        Correccion=atoi(TTN_response);
         dataLength=0;       
     }
     return finished;

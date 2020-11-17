@@ -5,15 +5,9 @@
 #include "pgmstrings.h"
 #include <EEPROM.h>
 #include <Arduino.h> // for type definitions
+#include "lmicmodule.h"
 #include <SSD1306.h>
-
-#define OLED_I2C_ADDR 0x3C
-#define OLED_RESET 16
-#define OLED_SDA 4
-#define OLED_SCL 15
-
-SSD1306 display(OLED_I2C_ADDR, OLED_SDA, OLED_SCL);
-//#include "fineoffset.h"
+#include <CayenneLPP.h>
 
 // Satisfy the IDE, which needs to see the include statment in the ino too.
 #ifdef dobogusinclude
@@ -27,26 +21,12 @@ SSD1306 display(OLED_I2C_ADDR, OLED_SDA, OLED_SCL);
 //La libreria de Host fué modificada para adaptarse a esto
 #define USB_SS 23
 #define OK 0
+#define OLED_I2C_ADDR 0x3C
+#define OLED_RESET 16
+#define OLED_SDA 4
+#define OLED_SCL 15
 
-template <class T>
-int EEPROM_writeAnything(int ee, const T &value)
-{
-    const byte *p = (const byte *)(const void *)&value;
-    unsigned int i;
-    for (i = 0; i < sizeof(value); i++)
-        EEPROM.write(ee++, *p++);
-    return i;
-}
-
-template <class T>
-int EEPROM_readAnything(int ee, T &value)
-{
-    byte *p = (byte *)(void *)&value;
-    unsigned int i;
-    for (i = 0; i < sizeof(value); i++)
-        *p++ = EEPROM.read(ee++);
-    return i;
-}
+SSD1306 display(OLED_I2C_ADDR, OLED_SDA, OLED_SCL);
 
 class HIDUniversal2 : public HIDUniversal
 {
@@ -91,9 +71,13 @@ USB Usb;
 HIDUniversal2 Hid(&Usb);
 UniversalReportParser Uni;
 DeviceReader dr;
+MyLMIC lmic;
+CayenneLPP pld(30);
 
 uint16_t ReadCount = 0;
 uint16_t StMempos;
+int Correccion;
+bool Sent = false;
 
 //static WH1080_WORK wh1080Work;
 
@@ -127,20 +111,22 @@ void setup()
     }
 
     //Get ReadCount and StMempos
-    ReadCount=EEPROM.readShort(0);
-    StMempos=EEPROM.readShort(4);
+    ReadCount = EEPROM.readShort(0);
+    StMempos = EEPROM.readShort(4);
     Serial.println(ReadCount);
     Serial.println(StMempos);
     //Eliminar esta linea para poner en "producción"
-    ReadCount=0;
+    ReadCount = 0;
+    lmic.loraSetup(ReadCount);
     //Set StMempos for extraction
     //dr.setLastSentRecord(ReadCount, StMempos);
 }
 
 void loop()
 {
+    //Reiniciamos la variable de control de correcciones
+    Correccion = -1;    
     uint16_t currentPos, readPosition; //Aqui almacenaremos la posicion del buffer circular
-    //int lectura=0;
     //Iniciamos el usb
     Usb.Task();
     //Si el usb está listo para trabajar
@@ -151,10 +137,11 @@ void loop()
         {
             //Se obtiene la posicion del buffer
             currentPos = dr.getCurrentPosition(Usb);
-            //Iterar para todas las lecturas 4078 es la cantidad máxima de lecturas 4096 es el total de segmentos de 16 bytes en el buffer
+            //Iterar para todas las lecturas 4078 + 1 es la cantidad máxima de lecturas 4096 es el total de segmentos de 16 bytes en el buffer
             for (int indice = 1; indice <= 4096; indice++)
             {
                 //Leemos el la lectura inmediata siguiente: cada lectura esta separada por 16 bytes
+                //65520 es la posicion max-1, esta es invalida
                 readPosition = currentPos + (indice * 16);
                 if (dr.readStationData(Usb, readPosition) == OK)
                 {
@@ -172,23 +159,68 @@ void loop()
                     Serial.print(wh1080Work.sensorData.inhumidity); //Ok
                     Serial.print("  Press:   ");
                     Serial.println(wh1080Work.sensorData.pressure); //ok
-                    // Serial.println(wh1080Work.sensorData.outhumidity); //:(
+                    // Serial.println(wh1080Work.sensorData.outhumidity); //Faltan
                     // Serial.println(wh1080Work.sensorData.outtemp);
                     // Serial.println(wh1080Work.sensorData.windAvgSpeed);
                     // Serial.println(wh1080Work.sensorData.windGustSpeed);
                     // Serial.println(wh1080Work.sensorData.windDir);
                     // Serial.println(wh1080Work.sensorData.rain);
                     // Serial.println(wh1080Work.sensorData.status);
+                    //Se arma el payload                    
+                    // pld.delay = wh1080Work.recordBlock[0];
+                    // pld.inTemp = wh1080Work.recordBlock[2];
+                    // pld.inHum = wh1080Work.recordBlock[1];
+                    // pld.pressure = wh1080Work.recordBlock[7];
+                    // pld.readcount = numLectura;
+                    // pld.mempos = readPosition;
+                    //Serial.println(ESP.getFreeHeap());
+                    pld.reset();
+                    pld.addDigitalOutput(1, (int)(wh1080Work.sensorData.delay));//1+2
+                    pld.addTemperature(2, wh1080Work.sensorData.intemp);//2+2
+                    pld.addRelativeHumidity(3, wh1080Work.sensorData.inhumidity);//1+2
+                    pld.addBarometricPressure(4, wh1080Work.sensorData.pressure);//2+2
+                    //Este indice se descontrolaba por que está pensado en un signed int de 32000 (medio maxint)
+                    //Serial.println((numLectura/100));
+                    //addGenericSensor cambiar a esto pa mandar 4 bytes
+                    pld.addGenericSensor(5, numLectura);//4+2
+                    pld.addAnalogOutput(6, readPosition);//2+2
+                    //Esperamos un segundo para que el SPI cambie a libre
+                    //delay(1000);
+                    //Restablecemos la bandera del envío
+                    Sent = false;
                     // Enviar
-                    
-                    // Hubo respuesta?
-                    // Corregir
-                    // Guardar
-                    if (saveLecnPos(numLectura, readPosition) == OK)
+                    lmic.do_send(&sendjob, pld);
+                    //Iterar el evento del lmic para esperar la respuesta
+                    while (!Sent)
                     {
-                        Serial.println("Escrito?");
+                        Sent = lmic.loraLoop();
                     }
-                    numLectura++;
+                    //Hubo respuesta,  Co
+                    Correccion=lmic.Correccion;
+                    lmic.Correccion=-1;
+                    if (Correccion != -1)
+                    {
+                        Serial.print("Intentando corregir a: ");
+                        Serial.println(Correccion);
+                        //la diferencia entre el numero actual y la correccion que pide el  servidor
+                        int dif = numLectura - Correccion;
+                        //Ajustamos la posicion de lectura 
+                        readPosition=readPosition-(dif*16);
+                        //Reducimos el indice para evitar un recorrido incompleto
+                        indice = indice - dif;
+                        //Ajustamos el numero de envío
+                        numLectura=Correccion;
+                        Correccion = -1;
+                    }                    
+                    else //Si no hay nada que corregir
+                    {
+                        // Guardar
+                        if (saveLecnPos(numLectura, readPosition) == OK)
+                        {
+                            Serial.println("Escrito");
+                        }
+                        numLectura++;
+                    }
                 }
                 else
                 {
@@ -197,6 +229,8 @@ void loop()
                     //continue;
                 }
                 Serial.println(" ");
+                //Para hacer el debug                
+                //delay(10000);
             }
             //getLastSentRecordfromFile();
             //saveData();
@@ -220,6 +254,7 @@ void loop()
     //Crear el archivo
     delay(10000);
 }
+
 int saveLecnPos(uint16_t lectura, uint16_t posicion)
 {
     //Guardamos readcount o lectura

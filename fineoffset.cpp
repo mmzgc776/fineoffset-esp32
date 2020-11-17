@@ -449,7 +449,7 @@ int DeviceReader::readStationData(USB Usb, int currentPosition)
 
     // Get the current record position; the WH1080 reports the record it is
     // building, thus if it changes we need the prior just finished record:
-    Serial.print("Fixed Current pos: ");
+    Serial.print("Current pos: ");
     Serial.println(currentPosition);
     // Make sure the index is aligned on 16-byte boundary:
     if ((currentPosition % 16) != 0)
