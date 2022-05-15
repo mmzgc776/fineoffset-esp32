@@ -3,14 +3,13 @@
 // #include <SPI.h>
 #include <lmic.h>
 #include <hal/hal.h>
+#include "lmicmodule.h"
 // #include <stdio.h>
 // #include <string.h>
-#include "lmicmodule.h"
-#ifndef config
-#include "config.h"
-#endif
 
 MyLMIC::MyLMIC() {}
+
+int ReadCount;
 
 bool finished = false;
 
@@ -20,6 +19,14 @@ const lmic_pinmap lmic_pins = {
     .rxtx = LMIC_UNUSED_PIN,
     .rst = 14,
     .dio = {26, 33, 32}};
+
+// These callbacks are only used in over-the-air activation, so they are
+// left empty here (we cannot leave them out completely unless
+// DISABLE_JOIN is set in arduino-lmic/project_config/lmic_project_config.h,
+// otherwise the linker will complain)
+void os_getArtEui(u1_t *buf) {}
+void os_getDevEui(u1_t *buf) {}
+void os_getDevKey(u1_t *buf) {}
 
 //Force Single Channel
 //Segmento copiado del foro de ttn, solo para pruebas, ya que viola el estandar
@@ -111,7 +118,7 @@ void onEvent(ev_t ev)
         finished=true;
         digitalWrite(LEDPIN, LOW);
         //definida en el ino
-        display.drawString(0, 50, String(count));
+        display.drawString(0, 50, String(ReadCount));
         display.display();
         break;
     case EV_LOST_TSYNC:
@@ -185,9 +192,9 @@ void do_send(osjob_t *j)
         payload[3] = lowByte(temperature);
         // Serial.println(payload[3]);
 
-        payload[4] = highByte(count);
+        payload[4] = highByte(ReadCount);
         //Serial.println(payload[4]);
-        payload[5] = lowByte(count);
+        payload[5] = lowByte(ReadCount);
         //Serial.println(payload[5]);
         //Ver el cpu que se está usando
         //Serial.print("send() running on core ");
@@ -195,24 +202,25 @@ void do_send(osjob_t *j)
 
         //Check frequency
         //Serial.println(LMIC.freq);
-        count++;
+        ReadCount++;
         Serial.print("Numero de envio: ");
-        Serial.println(count);
+        Serial.println(ReadCount);
         //Regresar a 0 el ultimo parametro, es la peticion de confirmación
         LMIC_setTxData2(1, (uint8_t *)payload, sizeof(payload), 0);
         Serial.println(F("Packet queued"));
         digitalWrite(LEDPIN, HIGH);
         display.clear();
         display.drawString(0, 30, "Sending uplink packet...");
-        display.drawString(0, 50, String(count));
+        display.drawString(0, 50, String(ReadCount));
         display.display();
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
 
-void loraSetup()
+void loraSetup(int readcount)
 {
+    ReadCount=readcount;
     //while (!Serial); // wait for Serial to be initialized
     //Serial.begin(115200);
     delay(1500); // per sample code on RF_95 test
@@ -357,7 +365,7 @@ bool loraLoop()
         Serial.print("Está definida la respuesta como: ");
         Serial.println(String(TTN_response));
         //Al vuelo, aquí somos bien machos
-        count=atoi(TTN_response);
+        ReadCount=atoi(TTN_response);
         dataLength=0;       
     }
     return finished;

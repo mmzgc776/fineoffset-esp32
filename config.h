@@ -5,20 +5,17 @@
 
 #define CHANNEL 8
 
+#define OLED_I2C_ADDR 0x3C
+#define OLED_RESET 16
+#define OLED_SDA 4
+#define OLED_SCL 15
+
 SSD1306 display(OLED_I2C_ADDR, OLED_SDA, OLED_SCL);
 
-// These callbacks are only used in over-the-air activation, so they are
-// left empty here (we cannot leave them out completely unless
-// DISABLE_JOIN is set in arduino-lmic/project_config/lmic_project_config.h,
-// otherwise the linker will complain)
-void os_getArtEui(u1_t *buf) {}
-void os_getDevEui(u1_t *buf) {}
-void os_getDevKey(u1_t *buf) {}
 
 //Aquí se guarda el tamaño de la ultima respuesta, cada loop se restablece a 0
 int dataLength = 0;
-//Contador de envíos
-uint32_t count = 0;
+
 //array para respuesta
 char TTN_response[30];
 

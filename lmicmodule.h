@@ -42,17 +42,22 @@
 #include <stdio.h>
 #include <string.h>
 
+
+#include <SSD1306.h>
+#ifndef config
+#include "config.h"
+#endif
 //Led para envío Azul
 #define LEDPIN 2
 
 #define LORA_SS 18
 
-#include <SSD1306.h>
+//#include <SSD1306.h>
 
-#define OLED_I2C_ADDR 0x3C
-#define OLED_RESET 16
-#define OLED_SDA 4
-#define OLED_SCL 15
+//#define OLED_I2C_ADDR 0x3C
+//#define OLED_RESET 16
+//#define OLED_SDA 4
+//#define OLED_SCL 15
 
 
 class MyLMIC
@@ -67,7 +72,7 @@ const unsigned TX_INTERVAL = 90;
 
 static osjob_t sendjob;
 
-void loraSetup();
+void loraSetup(int readcount);
 bool loraLoop();
 void forceTxSingleChannelDr(int channel);
 //int loraSend(byte payload[]);
